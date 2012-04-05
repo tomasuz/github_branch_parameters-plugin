@@ -1,32 +1,25 @@
 package com.konvenit.hudson.plugins.githubbranches;
 
-import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.List;
-import java.util.Date;
-import java.util.UUID;
-import java.text.SimpleDateFormat;
-
-
-
-import hudson.EnvVars;
 import hudson.Extension;
-import hudson.model.AbstractProject;
-import hudson.model.ParameterValue;
 import hudson.model.ParameterDefinition;
-import hudson.model.ParametersDefinitionProperty;
-import hudson.model.Hudson;
-import hudson.model.TaskListener;
-import hudson.scm.SCM;
+import hudson.model.ParameterValue;
+import java.io.IOException;
+
+import java.util.UUID;
+import java.util.ArrayList;
+import java.util.List;
 
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 import org.apache.commons.lang.StringUtils;
+import org.eclipse.egit.github.core.Repository;
+import org.eclipse.egit.github.core.RepositoryBranch;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
 
+import org.eclipse.egit.github.core.client.GitHubClient;
+import org.eclipse.egit.github.core.service.RepositoryService;
 
 public class GithubBranchParameterDefinition extends ParameterDefinition {
 
@@ -44,17 +37,17 @@ public class GithubBranchParameterDefinition extends ParameterDefinition {
 
     private String project;
     private String username;
-    private String token;
+    private String password;
 
     @DataBoundConstructor
-    public GithubBranchParameterDefinition(String name, String project, String username, String token, String description) {
+    public GithubBranchParameterDefinition(String name, String project, String username, String password, String description) {
         super(name, description);
         this.project = project;
         this.username = username;
-        this.token = token;
+        this.password = password;
         this.uuid = UUID.randomUUID();               
     }
-        
+
 
 	@Override
 	public ParameterValue createValue(StaplerRequest request) {
@@ -110,11 +103,36 @@ public class GithubBranchParameterDefinition extends ParameterDefinition {
 		this.username = username;
 	}
 
-        public String getToken() {
-		return token;
+        public String getPassword() {
+		return password;
 	}
 
-	public void setToken(String token) {
-		this.token = token;
+        public void setPassword(String password) {
+		this.password = password;
 	}
+
+    public List<String> getBranches() {
+        ArrayList<String> result = new ArrayList<String>();
+        try {
+            GitHubClient client = new GitHubClient();
+            if(!StringUtils.isBlank(getUsername())) {
+                client.setCredentials(getUsername(), getPassword());
+            }
+            RepositoryService repo_service = new RepositoryService(client);
+            
+            String[] parts = getProject().split("/");
+            Repository repo = repo_service.getRepository(parts[0], parts[1]);
+
+            List<RepositoryBranch> branches = repo_service.getBranches(repo);
+            result.add("master");
+            for(RepositoryBranch b: branches) {
+                if(b.getName() != "master") {
+                    result.add(b.getName());
+                }
+            }
+        } catch(IOException e) {
+            result.add(e.getMessage());
+        }
+        return result;
+    }
 }

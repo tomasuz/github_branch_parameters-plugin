@@ -23,10 +23,6 @@ import org.eclipse.egit.github.core.service.RepositoryService;
 
 public class GithubBranchParameterDefinition extends ParameterDefinition {
 
-    private static final long serialVersionUID = 9157832967140868122L;
-        
-    private final UUID uuid;
-
     @Extension
     public static class DescriptorImpl extends ParameterDescriptor {
         @Override
@@ -40,52 +36,27 @@ public class GithubBranchParameterDefinition extends ParameterDefinition {
     private String password;
 
     @DataBoundConstructor
-    public GithubBranchParameterDefinition(String name, String project, String username, String password, String description) {
-        super(name, description);
+    public GithubBranchParameterDefinition(String project, String username, String password) {
+        super(project);
         this.project = project;
         this.username = username;
-        this.password = password;
-        this.uuid = UUID.randomUUID();               
+        this.password = password;           
     }
 
+    @Override
+    public ParameterValue createValue(StaplerRequest request) {
+        return null;
+    }
 
-	@Override
-	public ParameterValue createValue(StaplerRequest request) {
-		String value[] = request.getParameterValues(getName());
-		if (value == null) {
-			return getDefaultParameterValue();
-		}
-		return null;
-	}
-
-	@Override
-	public ParameterValue createValue(StaplerRequest request, JSONObject jO) {
+    @Override
+    public ParameterValue createValue(StaplerRequest request, JSONObject jO) {
 		Object value = jO.get("value");
 		String strValue = "";
 		if (value instanceof String) {
 			strValue = (String)value;
-		} else if (value instanceof JSONArray) {
-			JSONArray jsonValues = (JSONArray)value;
-			for(int i = 0; i < jsonValues.size(); i++) {
-				strValue += jsonValues.getString(i);
-				if (i < jsonValues.size() - 1) {
-					strValue += ",";
-				}
-			}
 		}
-
-        GithubBranchParameterValue gitParameterValue = new GithubBranchParameterValue(jO.getString("name"), strValue);
-        return gitParameterValue;
+        return new GithubBranchParameterValue(getProject(), strValue);
     }
-
-	@Override
-	public ParameterValue getDefaultParameterValue() {
-		String defValue = "";
-		if (!StringUtils.isBlank(defValue)) {                    
-			return new GithubBranchParameterValue(getName(), defValue);
-		}
-		return super.getDefaultParameterValue();
-	}
 
 	public String getProject() {
 		return project;
